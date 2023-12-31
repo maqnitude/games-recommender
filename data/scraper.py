@@ -5,10 +5,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from common import settings
+from common import config
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-games_txt_path = os.path.join(BASE_DIR, 'collected', settings.GAMES_TXT)
+games_txt_path = os.path.join(BASE_DIR, 'collected', config.GAMES_TXT)
 
 categories = [
     'action',
