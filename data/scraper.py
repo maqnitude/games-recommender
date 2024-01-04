@@ -38,23 +38,23 @@ driver = webdriver.Firefox(options=options)
 app_ids = []
 
 for category in categories:
-    url = f"{BASE_URL}{category}/{TOP_RATED}"
-    driver.get(url)
+    for offset in range(2):
+        url = f"{BASE_URL}{category}/{TOP_RATED}&offset={offset * 12}"
+        driver.get(url)
 
-    print(f"Waiting for: {url}...", end=" ")
+        print(f"Waiting for: {url}...", end=" ")
 
-    wait = WebDriverWait(driver, 20)
-    wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'salepreviewwidgets_SaleItemBrowserRow_y9MSd')))
+        wait = WebDriverWait(driver, 20)
+        wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'salepreviewwidgets_SaleItemBrowserRow_y9MSd')))
+        elements = driver.find_elements(By.XPATH, "//div[@class='salepreviewwidgets_StoreSaleWidgetHalfLeft_2Va3O']/a")
 
-    elements = driver.find_elements(By.XPATH, "//div[@class='salepreviewwidgets_StoreSaleWidgetHalfLeft_2Va3O']/a")
+        print(f"DONE.\n\tFound {len(elements)} games in {category} category...")
 
-    print(f"DONE.\n\tFound {len(elements)} games in {category} category...")
-
-    for element in elements:
-        href = element.get_attribute('href')
-        app_id = str(href).split('/app/')[1].split('/')[0]
-        if app_id not in app_ids:
-            app_ids.append(app_id)
+        for element in elements:
+            href = element.get_attribute('href')
+            app_id = str(href).split('/app/')[1].split('/')[0]
+            if app_id not in app_ids:
+                app_ids.append(app_id)
 
 app_ids = sorted(map(int, app_ids))
 
