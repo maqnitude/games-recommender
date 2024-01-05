@@ -140,7 +140,7 @@ def collect_games_data():
                     platforms_linux = app_details['data']['platforms']['linux']
                     metacritic = app_details['data']['metacritic']['score'] if 'metacritic' in app_details['data'] else "N/A"
                     categories = '|'.join(category['description'] for category in app_details['data']['categories'])
-                    genres = '|'.join(genre['description'] for genre in app_details['data']['genres'])
+                    genres = '|'.join(genre['description'] for genre in app_details['data']['genres']) if 'genres' in app_details['data'] else "N/A"
                     recommendations = app_details['data']['recommendations']['total'] if 'recommendations' in app_details['data'] else "N/A"
                     coming_soon = app_details['data']['release_date']['coming_soon']
                     release_date = app_details['data']['release_date']['date']
