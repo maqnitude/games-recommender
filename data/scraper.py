@@ -113,11 +113,10 @@ for category in categories:
                     href = element.get_attribute('href')
                     app_id = str(href).split('/app/')[1].split('/')[0]
                     app_type = get_app_details(app_id)[f"{app_id}"]['data']['type']
-                    if app_id not in app_ids and app_type == 'game':
+                    if app_id not in app_ids and app_type == "game":
                         app_ids.append(app_id)
-
             except Exception as e:
-                print(f"Error processing URL: {url}. Exception: {e}")
+                print(f"EXCEPTION: {e}\n\tTrackback: {e.__traceback__}")
         else:
             print(f"Skipping invalid URL: {url}")
 
