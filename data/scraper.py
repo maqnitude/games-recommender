@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 import json
 from urllib.parse import urlparse
@@ -69,6 +70,10 @@ categories = [
     'sports_team',
 ]
 
+test_categories = [
+    'sports_fishing_hunting',
+]
+
 BASE_URL = 'https://store.steampowered.com/category/'
 TOP_RATED = '?flavor=contenthub_toprated'
 
@@ -94,7 +99,7 @@ def get_app_details(app_id):
     return json.loads(response.text)
 
 for category in categories:
-    for offset in range(10):
+    for offset in range(2):
         url = f"{BASE_URL}{category}/{TOP_RATED}&offset={offset * 12}"
 
         if is_url_valid(url):
@@ -112,11 +117,28 @@ for category in categories:
                 for element in elements:
                     href = element.get_attribute('href')
                     app_id = str(href).split('/app/')[1].split('/')[0]
-                    app_type = get_app_details(app_id)[f"{app_id}"]['data']['type']
-                    if app_id not in app_ids and app_type == "game":
-                        app_ids.append(app_id)
+
+                    for i in range(5): # Retry up to 5 times
+                        try:
+                            app_details = get_app_details(app_id)[f"{app_id}"]
+                            break
+                        except TypeError:
+                            print("TYPE_ERROR")
+                            print(f"Failed to get app details for {app_id}. Retrying (attempt #{i + 1}) in 5 seconds...")
+                            time.sleep(5)
+                    else:
+                        print(f"Failed to get details for {app_id} after 5 attempts")
+                        continue
+
+                    if app_details['success'] == True:
+                        app_type = app_details['data']['type']
+                        if app_id not in app_ids and app_type == "game":
+                            app_ids.append(app_id)
+
             except Exception as e:
-                print(f"EXCEPTION: {e}\n\tTrackback: {e.__traceback__}")
+                print("ERROR")
+                print(f"Could not process url: {url}. EXCEPTION: {e}")
+                break
         else:
             print(f"Skipping invalid URL: {url}")
 

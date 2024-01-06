@@ -1,4 +1,5 @@
 import os
+import time
 
 import requests
 import json
@@ -99,7 +100,7 @@ def get_app_details(app_id):
 
     url = f"https://store.steampowered.com/api/appdetails?appids={app_id}&lang=en"
     response = requests.get(url)
-    return json.loads(response.text)
+    return json.loads(response.text.encode('utf-8-sig'))
 
 def get_app_reviews(app_id, cursor='*'):
     """Get app reviews
@@ -113,7 +114,7 @@ def get_app_reviews(app_id, cursor='*'):
     cursor = requests.utils.quote(cursor)
     url = f"https://store.steampowered.com/appreviews/{app_id}?json=1&cursor={cursor}"
     response = requests.get(url)
-    return json.loads(response.text)
+    return json.loads(response.text.encode('utf-8-sig'))
 
 def collect_games_data():
     with open(games_csv_path, 'w', newline='', encoding='utf-8') as csv_file:
@@ -126,7 +127,18 @@ def collect_games_data():
 
                 print(f"Retrieving details and reviews for: {app_id}...", end=" ")
 
-                app_details = get_app_details(app_id)[f"{app_id}"]
+                for i in range(5): # Retry up to 5 times
+                    try:
+                        app_details = get_app_details(app_id)[f"{app_id}"]
+                        break
+                    except TypeError:
+                        print("TYPE_ERROR")
+                        print(f"Failed to get app details for {app_id}. Retrying (attempt #{i + 1}) in 5 seconds...")
+                        time.sleep(5)
+                else:
+                    print(f"Failed to get details for {app_id} after 5 attempts")
+                    continue
+
                 app_reviews = get_app_reviews(app_id)
 
                 if app_details['success'] == True and app_reviews['success'] == True:
