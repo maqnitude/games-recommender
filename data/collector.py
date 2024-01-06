@@ -214,7 +214,7 @@ def collect_users_games_data():
                     if app_reviews['success'] == True:
                         if batch == 1:
                             print("SUCCESS")
-                        print(f"Retrieving user data from reviews of {app_id} (batch: {batch})...", end=" ")
+                        print(f"Retrieving user data from 20 reviews per batch of game with id: {app_id} (batch: {batch})...", end=" ")
 
                         for review in app_reviews['reviews']:
                             steam_id = review['author']['steamid']

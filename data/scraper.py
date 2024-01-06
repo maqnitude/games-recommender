@@ -99,7 +99,7 @@ def get_app_details(app_id):
     return json.loads(response.text)
 
 for category in categories:
-    for offset in range(2):
+    for offset in range(20):
         url = f"{BASE_URL}{category}/{TOP_RATED}&offset={offset * 12}"
 
         if is_url_valid(url):
