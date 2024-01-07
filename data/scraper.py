@@ -118,7 +118,7 @@ for category in categories:
                     href = element.get_attribute('href')
                     app_id = str(href).split('/app/')[1].split('/')[0]
 
-                    for i in range(5): # Retry up to 5 times
+                    for i in range(2): # Retry only once to save time
                         try:
                             app_details = get_app_details(app_id)[f"{app_id}"]
                             break
@@ -138,7 +138,6 @@ for category in categories:
             except Exception as e:
                 print("ERROR")
                 print(f"Could not process url: {url}. EXCEPTION: {e}")
-                break
         else:
             print(f"Skipping invalid URL: {url}")
 
