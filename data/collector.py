@@ -214,16 +214,17 @@ def collect_users_games_data():
                     if app_reviews['success'] == True:
                         if batch == 1:
                             print("SUCCESS")
+
                         print(f"Retrieving user data from 20 reviews per batch of game with id: {app_id} (batch: {batch})...", end=" ")
 
                         for review in app_reviews['reviews']:
                             steam_id = review['author']['steamid']
-                            num_games_owned = review['author']['num_games_owned']
-                            num_reviews = review['author']['num_reviews']
-                            playtime_forever = review['author']['playtime_forever']
-                            playtime_last_two_weeks = review['author']['playtime_last_two_weeks']
-                            playtime_at_review = review['author']['playtime_at_review']
-                            last_played = review['author']['last_played']
+                            num_games_owned = review['author']['num_games_owned'] if 'num_games_owned' in review['author'] else 0
+                            num_reviews = review['author']['num_reviews'] if 'num_reviews' in review['author'] else 0
+                            playtime_forever = review['author']['playtime_forever'] if 'playtime_forever' in review['author'] else 0
+                            playtime_last_two_weeks = review['author']['playtime_last_two_weeks'] if 'playtime_last_two_weeks' in review['author'] else 0
+                            playtime_at_review = review['author']['playtime_at_review'] if 'playtime_at_review' in review['author'] else 0
+                            last_played = review['author']['last_played'] if 'last_played' in review['author'] else 0
                             timestamp_created = review['timestamp_created']
                             timestamp_updated = review['timestamp_updated']
                             voted_up = review['voted_up']
