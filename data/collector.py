@@ -145,8 +145,8 @@ def collect_games_data():
                     name = app_details['data']['name']
                     required_age = app_details['data']['required_age']
                     is_free = app_details['data']['is_free']
-                    developers = '|'.join(developer for developer in app_details['data']['developers'])
-                    publishers = '|'.join(publisher for publisher in app_details['data']['publishers'])
+                    developers = '|'.join(developer for developer in app_details['data']['developers']) if 'developers' in app_details['data'] else "N/A"
+                    publishers = '|'.join(publisher for publisher in app_details['data']['publishers']) if 'publishers' in app_details['data'] else "N/A"
                     platforms_windows = app_details['data']['platforms']['windows']
                     platforms_mac = app_details['data']['platforms']['mac']
                     platforms_linux = app_details['data']['platforms']['linux']
