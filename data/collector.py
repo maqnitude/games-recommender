@@ -48,7 +48,7 @@ USERS_GAMES_COLUMNS = [
     'playtime_at_review',
     'last_played',
     'timestamp_created',
-    'timestamp_updated'
+    'timestamp_updated',
     'voted_up',
     'votes_up',
     'votes_funny',
@@ -207,12 +207,22 @@ def collect_games_data():
                 else:
                     print("FAILURE")
 
+    utils.read_and_sort_csv(games_csv_path, 0, as_number=True)
     print(f"Successfully written to '{games_csv_path}'")
 
 def collect_users_games_data():
+    existing_user_game_pairs = set()
+    if os.path.exists(users_games_csv_path):
+        with open(users_games_csv_path, 'r', newline='', encoding='utf-8') as csv_file:
+            reader = csv.reader(csv_file)
+            next(reader) # Skip the header
+            for row in reader:
+                existing_user_game_pairs.add((row[0], row[1]))
+
     with open(users_games_csv_path, 'a', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
-        writer.writerow(USERS_GAMES_COLUMNS)
+        if not existing_user_game_pairs:
+            writer.writerow(USERS_GAMES_COLUMNS)
 
         with open(games_txt_path, 'r', encoding='utf-8') as f:
             for line in f.readlines():
@@ -227,10 +237,17 @@ def collect_users_games_data():
                         if batch == 1:
                             print("SUCCESS")
 
-                        print(f"Retrieving user data from 20 reviews per batch of game with id: {app_id} (batch: {batch})...", end=" ")
+                        batch_num_reviews = app_reviews['query_summary']['num_reviews']
+                        print(f"Retrieving user data from {batch_num_reviews} reviews per batch of game with id: {app_id} (batch: {batch})...", end=" ")
 
                         for review in app_reviews['reviews']:
                             steam_id = review['author']['steamid']
+                            if (steam_id, app_id) in existing_user_game_pairs:
+                                if review == app_reviews['reviews'][0]:
+                                    print("\n", end="")
+                                print(f"Skipping ({steam_id},{app_id}). Data already collected.")
+                                continue
+
                             num_games_owned = review['author']['num_games_owned'] if 'num_games_owned' in review['author'] else 0
                             num_reviews = review['author']['num_reviews'] if 'num_reviews' in review['author'] else 0
                             playtime_forever = review['author']['playtime_forever'] if 'playtime_forever' in review['author'] else 0
