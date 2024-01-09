@@ -117,13 +117,25 @@ def get_app_reviews(app_id, cursor='*'):
     return json.loads(response.text.encode('utf-8-sig'))
 
 def collect_games_data():
-    with open(games_csv_path, 'w', newline='', encoding='utf-8') as csv_file:
+    existing_games = set()
+    if os.path.exists(games_csv_path):
+        with open(games_csv_path, 'r', newline='', encoding='utf-8') as csv_file:
+            reader = csv.reader(csv_file)
+            next(reader) # Skip the header
+            for row in reader:
+                existing_games.add(row[0])
+
+    with open(games_csv_path, 'a', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
-        writer.writerow(GAMES_COLUMNS)
+        if not existing_games:
+            writer.writerow(GAMES_COLUMNS)
 
         with open(games_txt_path, 'r', encoding='utf-8') as f:
             for line in f.readlines():
                 app_id = line.rstrip()
+                if app_id in existing_games:
+                    print(f"Skipping {app_id}. Data already collected.")
+                    continue
 
                 print(f"Retrieving details and reviews for: {app_id}...", end=" ")
 
@@ -198,7 +210,7 @@ def collect_games_data():
     print(f"Successfully written to '{games_csv_path}'")
 
 def collect_users_games_data():
-    with open(users_games_csv_path, 'w', newline='', encoding='utf-8') as csv_file:
+    with open(users_games_csv_path, 'a', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
         writer.writerow(USERS_GAMES_COLUMNS)
 
