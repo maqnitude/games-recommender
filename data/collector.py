@@ -211,13 +211,13 @@ def collect_games_data():
     print(f"Successfully written to '{games_csv_path}'")
 
 def collect_users_games_data():
-    existing_user_game_pairs = set()
+    existing_user_game_pairs = {}
     if os.path.exists(users_games_csv_path):
         with open(users_games_csv_path, 'r', newline='', encoding='utf-8') as csv_file:
             reader = csv.reader(csv_file)
             next(reader) # Skip the header
             for row in reader:
-                existing_user_game_pairs.add((row[0], row[1]))
+                existing_user_game_pairs = {(row[0], row[1]) for row in reader}
 
     with open(users_games_csv_path, 'a', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
@@ -225,7 +225,7 @@ def collect_users_games_data():
             writer.writerow(USERS_GAMES_COLUMNS)
 
         with open(games_txt_path, 'r', encoding='utf-8') as f:
-            for line in f.readlines():
+            for line in f:
                 app_id = line.rstrip()
 
                 print(f"Retrieving reviews for: {app_id}...", end=" ")
