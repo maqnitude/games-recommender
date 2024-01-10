@@ -1,5 +1,6 @@
 import os
 import time
+from multiprocessing import Lock, Manager, Pool
 
 import requests
 import json
@@ -210,97 +211,207 @@ def collect_games_data():
     utils.read_and_sort_csv(games_csv_path, 0, as_number=True)
     print(f"Successfully written to '{games_csv_path}'")
 
+def process_game_reviews(args):
+    app_id, existing_user_game_pairs, lock = args
+
+    print(f"Retrieving reviews for: {app_id}...", end=" ")
+
+    rows = []
+    cursor = '*'
+    for batch in range(1, 26):
+        app_reviews = get_app_reviews(app_id, cursor)
+        if app_reviews['success'] == True:
+            if batch == 1:
+                print("SUCCESS")
+
+            batch_num_reviews = app_reviews['query_summary']['num_reviews']
+            print(f"Retrieving user data from {batch_num_reviews} reviews per batch of game with id: {app_id} (batch: {batch})...", end=" ")
+
+            for review in app_reviews['reviews']:
+                steam_id = review['author']['steamid']
+                if (steam_id, app_id) in existing_user_game_pairs:
+                    if review == app_reviews['reviews'][0]:
+                        print("\n", end="")
+                    print(f"Skipping ({steam_id},{app_id}). Data already collected.")
+                    continue
+
+                num_games_owned = review['author']['num_games_owned'] if 'num_games_owned' in review['author'] else 0
+                num_reviews = review['author']['num_reviews'] if 'num_reviews' in review['author'] else 0
+                playtime_forever = review['author']['playtime_forever'] if 'playtime_forever' in review['author'] else 0
+                playtime_last_two_weeks = review['author']['playtime_last_two_weeks'] if 'playtime_last_two_weeks' in review['author'] else 0
+                playtime_at_review = review['author']['playtime_at_review'] if 'playtime_at_review' in review['author'] else 0
+                last_played = review['author']['last_played'] if 'last_played' in review['author'] else 0
+                timestamp_created = review['timestamp_created']
+                timestamp_updated = review['timestamp_updated']
+                voted_up = review['voted_up']
+                votes_up = review['votes_up']
+                votes_funny = review['votes_funny']
+                weighted_vote_score = review['weighted_vote_score']
+                comment_count = review['comment_count']
+                steam_purchase = review['steam_purchase']
+                received_for_free = review['received_for_free']
+                written_during_early_access = review['written_during_early_access']
+
+                row = [
+                    steam_id,
+                    app_id,
+                    num_games_owned,
+                    num_reviews,
+                    playtime_forever,
+                    playtime_last_two_weeks,
+                    playtime_at_review,
+                    last_played,
+                    timestamp_created,
+                    timestamp_updated,
+                    voted_up,
+                    votes_up,
+                    votes_funny,
+                    weighted_vote_score,
+                    comment_count,
+                    steam_purchase,
+                    received_for_free,
+                    written_during_early_access,
+                ]
+
+                rows.append(row)
+
+            print("DONE")
+            cursor = app_reviews['cursor']
+            if cursor == '*':
+                print(f"Last batch of reviews for {app_id} reached.")
+                break
+        else:
+            print("FAILURE")
+
+    with lock:
+        with open(users_games_csv_path, 'a', newline='', encoding='utf-8') as csv_file:
+            writer = csv.writer(csv_file)
+            for row in rows:
+                if (row[0], row[1]) not in existing_user_game_pairs:
+                    writer.writerow(row)
+                    existing_user_game_pairs.append((row[0], row[1]))
+
 def collect_users_games_data():
-    existing_user_game_pairs = {}
+    existing_user_game_pairs = list()
     if os.path.exists(users_games_csv_path):
         with open(users_games_csv_path, 'r', newline='', encoding='utf-8') as csv_file:
             reader = csv.reader(csv_file)
             next(reader) # Skip the header
             for row in reader:
-                existing_user_game_pairs = {(row[0], row[1]) for row in reader}
+                existing_user_game_pairs.append((row[0], row[1]))
 
     with open(users_games_csv_path, 'a', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
         if not existing_user_game_pairs:
             writer.writerow(USERS_GAMES_COLUMNS)
 
-        with open(games_txt_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                app_id = line.rstrip()
+    with open(games_txt_path, 'r', encoding='utf-8') as f:
+        app_ids = [line.rstrip() for line in f]
 
-                print(f"Retrieving reviews for: {app_id}...", end=" ")
-
-                cursor = '*'
-                for batch in range(1, 26):
-                    app_reviews = get_app_reviews(app_id, cursor)
-                    if app_reviews['success'] == True:
-                        if batch == 1:
-                            print("SUCCESS")
-
-                        batch_num_reviews = app_reviews['query_summary']['num_reviews']
-                        print(f"Retrieving user data from {batch_num_reviews} reviews per batch of game with id: {app_id} (batch: {batch})...", end=" ")
-
-                        for review in app_reviews['reviews']:
-                            steam_id = review['author']['steamid']
-                            if (steam_id, app_id) in existing_user_game_pairs:
-                                if review == app_reviews['reviews'][0]:
-                                    print("\n", end="")
-                                print(f"Skipping ({steam_id},{app_id}). Data already collected.")
-                                continue
-
-                            num_games_owned = review['author']['num_games_owned'] if 'num_games_owned' in review['author'] else 0
-                            num_reviews = review['author']['num_reviews'] if 'num_reviews' in review['author'] else 0
-                            playtime_forever = review['author']['playtime_forever'] if 'playtime_forever' in review['author'] else 0
-                            playtime_last_two_weeks = review['author']['playtime_last_two_weeks'] if 'playtime_last_two_weeks' in review['author'] else 0
-                            playtime_at_review = review['author']['playtime_at_review'] if 'playtime_at_review' in review['author'] else 0
-                            last_played = review['author']['last_played'] if 'last_played' in review['author'] else 0
-                            timestamp_created = review['timestamp_created']
-                            timestamp_updated = review['timestamp_updated']
-                            voted_up = review['voted_up']
-                            votes_up = review['votes_up']
-                            votes_funny = review['votes_funny']
-                            weighted_vote_score = review['weighted_vote_score']
-                            comment_count = review['comment_count']
-                            steam_purchase = review['steam_purchase']
-                            received_for_free = review['received_for_free']
-                            written_during_early_access = review['written_during_early_access']
-
-                            row = [
-                                steam_id,
-                                app_id,
-                                num_games_owned,
-                                num_reviews,
-                                playtime_forever,
-                                playtime_last_two_weeks,
-                                playtime_at_review,
-                                last_played,
-                                timestamp_created,
-                                timestamp_updated,
-                                voted_up,
-                                votes_up,
-                                votes_funny,
-                                weighted_vote_score,
-                                comment_count,
-                                steam_purchase,
-                                received_for_free,
-                                written_during_early_access,
-                            ]
-
-                            writer.writerow(row)
-
-                        print("DONE")
-                        cursor = app_reviews['cursor']
-                        if cursor == '*':
-                            print(f"Last batch of reviews for {app_id} reached.")
-                            break
-                    else:
-                        print("FAILURE")
+    with Manager() as manager:
+        lock = manager.Lock()
+        # Convert to a Manager list so that it is shared between processes
+        existing_user_game_pairs = manager.list(existing_user_game_pairs)
+        with Pool() as p:
+            p.map(process_game_reviews, [(app_id, existing_user_game_pairs, lock) for app_id in app_ids])
 
     print("Sorting by steam_id...", end=" ")
     utils.read_and_sort_csv(users_games_csv_path, 0)
     print("DONE")
 
     print(f"Successfully written to '{users_games_csv_path}'")
+
+# def collect_users_games_data():
+#     existing_user_game_pairs = set()
+#     if os.path.exists(users_games_csv_path):
+#         with open(users_games_csv_path, 'r', newline='', encoding='utf-8') as csv_file:
+#             reader = csv.reader(csv_file)
+#             next(reader) # Skip the header
+#             for row in reader:
+#                 existing_user_game_pairs.add((row[0], row[1]))
+#
+#     with open(users_games_csv_path, 'a', newline='', encoding='utf-8') as csv_file:
+#         writer = csv.writer(csv_file)
+#         if not existing_user_game_pairs:
+#             writer.writerow(USERS_GAMES_COLUMNS)
+#
+#         with open(games_txt_path, 'r', encoding='utf-8') as f:
+#             for line in f:
+#                 app_id = line.rstrip()
+#
+#                 print(f"Retrieving reviews for: {app_id}...", end=" ")
+#
+#                 cursor = '*'
+#                 for batch in range(1, 26):
+#                     app_reviews = get_app_reviews(app_id, cursor)
+#                     if app_reviews['success'] == True:
+#                         if batch == 1:
+#                             print("SUCCESS")
+#
+#                         batch_num_reviews = app_reviews['query_summary']['num_reviews']
+#                         print(f"Retrieving user data from {batch_num_reviews} reviews per batch of game with id: {app_id} (batch: {batch})...", end=" ")
+#
+#                         for review in app_reviews['reviews']:
+#                             steam_id = review['author']['steamid']
+#                             if (steam_id, app_id) in existing_user_game_pairs:
+#                                 if review == app_reviews['reviews'][0]:
+#                                     print("\n", end="")
+#                                 print(f"Skipping ({steam_id},{app_id}). Data already collected.")
+#                                 continue
+#
+#                             num_games_owned = review['author']['num_games_owned'] if 'num_games_owned' in review['author'] else 0
+#                             num_reviews = review['author']['num_reviews'] if 'num_reviews' in review['author'] else 0
+#                             playtime_forever = review['author']['playtime_forever'] if 'playtime_forever' in review['author'] else 0
+#                             playtime_last_two_weeks = review['author']['playtime_last_two_weeks'] if 'playtime_last_two_weeks' in review['author'] else 0
+#                             playtime_at_review = review['author']['playtime_at_review'] if 'playtime_at_review' in review['author'] else 0
+#                             last_played = review['author']['last_played'] if 'last_played' in review['author'] else 0
+#                             timestamp_created = review['timestamp_created']
+#                             timestamp_updated = review['timestamp_updated']
+#                             voted_up = review['voted_up']
+#                             votes_up = review['votes_up']
+#                             votes_funny = review['votes_funny']
+#                             weighted_vote_score = review['weighted_vote_score']
+#                             comment_count = review['comment_count']
+#                             steam_purchase = review['steam_purchase']
+#                             received_for_free = review['received_for_free']
+#                             written_during_early_access = review['written_during_early_access']
+#
+#                             row = [
+#                                 steam_id,
+#                                 app_id,
+#                                 num_games_owned,
+#                                 num_reviews,
+#                                 playtime_forever,
+#                                 playtime_last_two_weeks,
+#                                 playtime_at_review,
+#                                 last_played,
+#                                 timestamp_created,
+#                                 timestamp_updated,
+#                                 voted_up,
+#                                 votes_up,
+#                                 votes_funny,
+#                                 weighted_vote_score,
+#                                 comment_count,
+#                                 steam_purchase,
+#                                 received_for_free,
+#                                 written_during_early_access,
+#                             ]
+#
+#                             writer.writerow(row)
+#
+#                         print("DONE")
+#                         cursor = app_reviews['cursor']
+#                         if cursor == '*':
+#                             print(f"Last batch of reviews for {app_id} reached.")
+#                             break
+#                     else:
+#                         print("FAILURE")
+#
+#     print("Sorting by steam_id...", end=" ")
+#     utils.read_and_sort_csv(users_games_csv_path, 0)
+#     print("DONE")
+#
+#     print(f"Successfully written to '{users_games_csv_path}'")
 
 if __name__ == '__main__':
     import sys
