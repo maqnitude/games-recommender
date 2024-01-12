@@ -314,7 +314,7 @@ def process_game_reviews(args):
         with open(users_games_csv_path, 'a', newline='', encoding='utf-8') as csv_file:
             writer = csv.writer(csv_file)
             for row in rows:
-                if (row[0], row[1]) not in existing_recommendations:
+                if row[0] not in existing_recommendations:
                     writer.writerow(row)
                     existing_recommendations.append(row[0])
 
@@ -352,6 +352,9 @@ def collect_users_games_data():
     end_time = time.time();
     execution_time = end_time - start_time
     print(f"Finished in {execution_time} seconds.")
+
+def drop_duplicated_users_games_data():
+    utils.drop_duplicates_in_csv(users_games_csv_path, 0)
 
 # def collect_users_games_data():
 #     start_time = time.time()
@@ -479,4 +482,6 @@ if __name__ == '__main__':
         collect_games_data()
     if sys.argv[1] == 'collect_users_games_data':
         collect_users_games_data()
+    if sys.argv[1] == 'drop_duplicated_users_games_data':
+        drop_duplicated_users_games_data()
 
