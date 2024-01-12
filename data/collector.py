@@ -1,6 +1,6 @@
 import os
 import time
-from multiprocessing import Lock, Manager, Pool
+from multiprocessing import Lock, Manager, Pool, Process
 
 import requests
 import json
@@ -114,7 +114,7 @@ def get_app_reviews(app_id, cursor='*'):
               retrieved from the API.
     """
     cursor = requests.utils.quote(cursor)
-    url = f"https://store.steampowered.com/appreviews/{app_id}?json=1&cursor={cursor}"
+    url = f"https://store.steampowered.com/appreviews/{app_id}?json=1&language=all&num_per_page=100&cursor={cursor}"
     response = requests.get(url)
     return json.loads(response.text.encode('utf-8-sig'))
 
@@ -220,7 +220,7 @@ def process_game_reviews(args):
     rows = []
     cursor = '*'
     cursor_history = []
-    for batch in range(1, 26):
+    for batch in range(1, 50):
         attempts = 2
         for i in range(attempts):
             try:
@@ -305,8 +305,6 @@ def process_game_reviews(args):
                 break
 
             print("\tBatch completed.")
-            # print("Batch completed. Waiting 1 seconds before fetching next batch...")
-            # time.sleep(1)
         else:
             print("FAILURE")
 
