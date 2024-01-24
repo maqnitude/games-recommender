@@ -43,5 +43,5 @@ The collected data can be found [here](https://drive.google.com/drive/folders/1p
 | ID | Name | Github |
 | -- | ---- | ------ |
 | 21520411 | Mai Anh Quân | https://github.com/maqnitude |
-| 21520345 | Trần Xuân Thành | https://github.com/LukasAbraham |
+| 21520456 | Trần Xuân Thành | https://github.com/LukasAbraham |
 | 21520531 | Nguyễn Hà Anh Vũ | https://github.com/AnhVu32 |
